@@ -522,6 +522,29 @@ describe("LiveCodeSandboxProvider", () => {
     expect(screen.queryByRole("button", { name: "Unsafe" })).not.toBeInTheDocument();
   });
 
+  it("fails closed instead of crashing for malformed runtime registry shapes", async () => {
+    render(
+      <LiveCodeSandboxProvider
+        registry={[
+          registry[0],
+          { name: "BadCategory", category: 1, examples: [{ name: "Basic", code: "<BadCategory />" }] } as never,
+          { name: "BadExample", examples: [null] } as never,
+          { name: "BadProps", examples: [{ name: "Basic", code: "<BadProps />" }], props: {} } as never,
+        ]}
+        scope={{ Button }}
+        storageKey="malformed-registry"
+      />
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Sandbox registry hid 3 invalid component entries.",
+    );
+    expect(screen.getByRole("button", { name: "Button" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "BadCategory" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "BadExample" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "BadProps" })).not.toBeInTheDocument();
+  });
+
   it("creates an interval checkpoint and lets the user delete then undo it", async () => {
     const user = userEvent.setup();
     renderSandbox("history", 2);

@@ -44,6 +44,7 @@ export type LiveCodeRegistryValidationIssue = {
     | "invalid-category"
     | "invalid-example-name"
     | "invalid-generated-example"
+    | "invalid-item"
     | "invalid-item-name"
     | "invalid-prop"
     | "missing-example"

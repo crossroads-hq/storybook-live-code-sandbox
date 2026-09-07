@@ -4,6 +4,28 @@ import { validateLiveCodeRegistry } from "./registryValidation";
 const Button = () => null;
 
 describe("validateLiveCodeRegistry", () => {
+  it("returns invalid-item issues for malformed runtime registry shapes", () => {
+    const malformedRegistry = [
+      null,
+      [],
+      { name: "BadCategory", category: 1, examples: [{ name: "Basic", code: "<BadCategory />" }] },
+      { name: "BadExample", examples: [null] },
+      { name: "BadProps", examples: [{ name: "Basic", code: "<BadProps />" }], props: {} },
+      { name: "BadPropType", examples: [{ name: "Basic", code: "<BadPropType />" }], props: [{ name: "label", type: 1 }] },
+    ] as never[];
+
+    const issues = validateLiveCodeRegistry(malformedRegistry, {});
+
+    expect(issues.map(({ code, itemIndex, path }) => ({ code, itemIndex, path }))).toEqual([
+      { code: "invalid-item", itemIndex: 0, path: "registry[0]" },
+      { code: "invalid-item", itemIndex: 1, path: "registry[1]" },
+      { code: "invalid-item", itemIndex: 2, path: "registry[2]" },
+      { code: "invalid-item", itemIndex: 3, path: "registry[3]" },
+      { code: "invalid-item", itemIndex: 4, path: "registry[4]" },
+      { code: "invalid-item", itemIndex: 5, path: "registry[5]" },
+    ]);
+  });
+
   it("accepts a selectable registry item backed by the runtime scope", () => {
     expect(validateLiveCodeRegistry([{
       name: "Button",
