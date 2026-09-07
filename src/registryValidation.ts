@@ -11,6 +11,37 @@ import type {
 const identifierPattern = /^[A-Za-z_$][\w$]*$/;
 const propNamePattern = /^[A-Za-z_:][\w:.-]*$/;
 const unsafeExamplePattern = /(^|\n)\s*import(?:\s|\()|\b(?:eval|Function)\s*\(|\b(?:window|document)\s*\./m;
+const propImportances = new Set(["high", "normal", "advanced"]);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const isOptionalString = (value: unknown) => value === undefined || typeof value === "string";
+
+const hasSafeRuntimeShape = (value: unknown) => {
+  if (!isRecord(value)) return false;
+  if (![value.importPath, value.description, value.category, value.disabledReason].every(isOptionalString)) return false;
+  if (value.sandboxVisible !== undefined && typeof value.sandboxVisible !== "boolean") return false;
+  if (value.metadata !== undefined && !isRecord(value.metadata)) return false;
+
+  if (value.examples !== undefined) {
+    if (!Array.isArray(value.examples)) return false;
+    if (value.examples.some((example) =>
+      !isRecord(example) || !isOptionalString(example.description))) return false;
+  }
+
+  if (value.props !== undefined) {
+    if (!Array.isArray(value.props)) return false;
+    if (value.props.some((prop) =>
+      !isRecord(prop) ||
+      ![prop.type, prop.defaultValue, prop.description].every(isOptionalString) ||
+      (prop.required !== undefined && typeof prop.required !== "boolean") ||
+      (prop.importance !== undefined &&
+        (typeof prop.importance !== "string" || !propImportances.has(prop.importance))))) return false;
+  }
+
+  return true;
+};
 
 const issue = (
   issues: LiveCodeRegistryValidationIssue[],
@@ -30,6 +61,10 @@ export function validateLiveCodeRegistry(
 
   registry.forEach((item, itemIndex) => {
     const itemPath = `registry[${itemIndex}]`;
+    if (!hasSafeRuntimeShape(item)) {
+      issue(issues, "invalid-item", itemIndex, itemPath, "Registry entries must use the documented runtime shape.");
+      return;
+    }
     const name = typeof item.name === "string" ? item.name.trim() : "";
     if (!name || !identifierPattern.test(name) || name !== item.name) {
       issue(issues, "invalid-item-name", itemIndex, `${itemPath}.name`, "Registry item names must be trimmed JavaScript identifiers.");
