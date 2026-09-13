@@ -18,7 +18,7 @@ env:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, fast]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -70,7 +70,7 @@ jobs:
 
   compatibility:
     name: Compatibility (Node ${{ matrix.node }}, React ${{ matrix.react }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, fast]
     strategy:
       fail-fast: false
       matrix:
@@ -141,6 +141,7 @@ jobs:
       contents: read
     with:
       npm-audit: true
+      runner-labels: '["self-hosted","fast"]'
 
   pr_validation:
     name: PR Validation
@@ -151,7 +152,7 @@ jobs:
     # leg under one name, and the supply-chain reusable from Phase 02.
     if: ${{ !cancelled() }}
     needs: [validate, compatibility, supply-chain]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, light]
     timeout-minutes: 5
     # No checkout: a remote composite is fetched by the runner, and this job
     # reads job results, not the repository.
