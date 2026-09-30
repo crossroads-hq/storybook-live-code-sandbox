@@ -42,7 +42,7 @@ jobs:
         run: node scripts/check-consistency.mjs ${BASE_SHA:+--base "$BASE_SHA"}
 
       - name: Select deterministic install npm
-        run: npm install --global npm@${INSTALL_NPM_VERSION} --ignore-scripts --no-audit --no-fund
+        run: npm install --global "npm@${INSTALL_NPM_VERSION}" --ignore-scripts --no-audit --no-fund
 
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
@@ -96,7 +96,7 @@ jobs:
           cache: npm
 
       - name: Select deterministic install npm
-        run: npm install --global npm@${INSTALL_NPM_VERSION} --ignore-scripts --no-audit --no-fund
+        run: npm install --global "npm@${INSTALL_NPM_VERSION}" --ignore-scripts --no-audit --no-fund
 
       - name: Install locked dependencies
         run: |
@@ -116,7 +116,7 @@ jobs:
       # under INSTALL_NPM_VERSION, so the authoritative lockfiles are still
       # verified by the install npm.
       - name: Select resolver npm for the React pin
-        run: npm install --global npm@${RESOLVER_NPM_VERSION} --ignore-scripts --no-audit --no-fund
+        run: npm install --global "npm@${RESOLVER_NPM_VERSION}" --ignore-scripts --no-audit --no-fund
 
       - name: Select React compatibility version
         run: |
@@ -130,13 +130,21 @@ jobs:
           npm run example:build
           npm run size:check
 
+  workflow-lint:
+    name: Workflow lint
+    # Shared actionlint + zizmor from the control plane, like every full-profile
+    # repository. Self-hosted labels are declared in .github/actionlint.yaml.
+    uses: crossroads-hq/crossroads-ci/.github/workflows/_workflow-lint.yml@bcf1ea08d6b16b924818c3ee1158547dcebccf5c # main (2026-09-30)
+    permissions:
+      contents: read
+
   supply-chain:
     name: Supply chain
     # Phase 02: the fleet's shared supply-chain checks -- dependency review,
     # OSV scan, secret scan, npm audit -- from the control plane. Reusable
     # rather than composite because none of these job names are load-bearing;
     # only the aggregate gate's name is.
-    uses: crossroads-hq/crossroads-ci/.github/workflows/_supply-chain.yml@b6d6ff2d2b709a42fb174c21f80549a95ddb1d56 # main
+    uses: crossroads-hq/crossroads-ci/.github/workflows/_supply-chain.yml@bcf1ea08d6b16b924818c3ee1158547dcebccf5c # main (2026-09-30)
     permissions:
       contents: read
     with:
@@ -150,18 +158,19 @@ jobs:
     # intact. `needs` includes the matrix job as a whole, aggregating every
     # leg under one name, and the supply-chain reusable from Phase 02.
     if: ${{ !cancelled() }}
-    needs: [validate, compatibility, supply-chain]
+    needs: [validate, compatibility, workflow-lint, supply-chain]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # No checkout: a remote composite is fetched by the runner, and this job
     # reads job results, not the repository.
     steps:
       - name: Check required results
-        uses: crossroads-hq/crossroads-ci/actions/gate@b6d6ff2d2b709a42fb174c21f80549a95ddb1d56 # main
+        uses: crossroads-hq/crossroads-ci/actions/gate@bcf1ea08d6b16b924818c3ee1158547dcebccf5c # main (2026-09-30)
         with:
           results: |
             {
               "Validate": "${{ needs.validate.result }}",
               "Compatibility": "${{ needs.compatibility.result }}",
+              "Workflow lint": "${{ needs.workflow-lint.result }}",
               "Supply chain": "${{ needs.supply-chain.result }}"
             }
