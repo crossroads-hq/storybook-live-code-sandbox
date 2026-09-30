@@ -1,0 +1,9 @@
+# actionlint runs from the control plane's _workflow-lint.yml and rejects
+# any runs-on label it does not know. The fleet's self-hosted runners carry
+# capability labels rather than repository names; declare them here so the
+# linter accepts them. Keep in step with the labels on the runners in the
+# crossroads-hq fleet-private runner group.
+self-hosted-runner:
+  labels:
+    - light
+    - fast
