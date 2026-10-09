@@ -21,6 +21,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history, so the guard below can prove the tag is on main.
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -29,6 +33,37 @@ jobs:
           registry-url: https://registry.npmjs.org
           # No dependency cache in a release job: a poisoned cache entry would be
           # published with provenance (zizmor cache-poisoning).
+
+      # Publish only a release tag, of the version it names, from main.
+      # `workflow_dispatch` stays as the way to retry a tag after an
+      # infrastructure failure, so it must be started FROM the tag: dispatched
+      # from a branch, it would otherwise publish whatever that branch holds.
+      # A tag is a pointer anyone with write access can create, so its commit
+      # must also already be on main -- what is published is what was reviewed.
+      - name: Verify this is a release tag on main
+        env:
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          case "$REF" in
+            refs/tags/v*) ;;
+            *)
+              echo "::error::Publishing runs only from a v* release tag, not ${REF}. To retry a release, dispatch this workflow from the tag."
+              exit 1
+              ;;
+          esac
+          tag_version="${REF_NAME#v}"
+          pkg_version="$(node -p "require('./package.json').version")"
+          echo "tag: ${tag_version}   package.json: ${pkg_version}"
+          if [ "$tag_version" != "$pkg_version" ]; then
+            echo "::error::Tag ${REF_NAME} does not match package.json (${pkg_version})."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "::error::Tag ${REF_NAME} points at a commit that is not on main."
+            exit 1
+          fi
 
       - name: Check repository consistency
         run: node scripts/check-consistency.mjs --all
