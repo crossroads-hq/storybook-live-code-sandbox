@@ -93,3 +93,49 @@ scope before editing, and commit or push only when asked.
 
 The Crossroads agent integration is read-only discovery. It does not authorize source mutation,
 publishing, releases, or external repository writes.
+
+## Code Review Rules
+
+These point at the notes above, `docs/COMPATIBILITY.md` and
+`docs/PRODUCTION_READINESS.md`, which win where this list disagrees. A test
+settles a finding only if it covers that exact issue and passed on the current
+PR head. A missing, skipped or stale result proves nothing.
+
+### Public contract
+- The public surface is what `docs/COMPATIBILITY.md` lists: the package root,
+  `./preview`, `./events`, `./storage`, both artifacts and `./styles.css`. Flag
+  a change that removes or changes an export, a documented type's shape, or
+  runtime behaviour a caller depends on without moving the version as that
+  policy requires and naming the change in the migration notes. Narrowing the
+  peer range is breaking; deep imports into `dist/` are internal.
+- Saved workspaces survive upgrades. Flag a change to the persisted shape that
+  does not add a storage version with a forward migration from every earlier
+  version, and any path that resets or discards a saved workspace on read.
+
+### Preview behaviour
+- A draft runs only after the explicit Run action, and the preview renders the
+  last successful code, so a failure returns to the previous composition. Flag
+  running drafts on edit or load, and a failure path that blanks the canvas or
+  loses the last success.
+- Registry entries cross a fail-closed validation boundary before they can be
+  selected. Flag a path that makes an unavailable or non-`sandboxVisible` entry
+  selectable, or that treats the registry as a runtime import mechanism.
+
+### Release and public repository
+- `.github/workflows/publish.yml` is the only publish path: npm trusted
+  publishing with provenance and no long-lived npm token. Flag adding an npm
+  token, dropping `--provenance` or `id-token: write`, a dependency cache in the
+  publish job, or a second publish path.
+- This repository is public and takes fork pull requests. Flag self-hosted
+  runner labels, `pull_request_target` that checks out pull-request code, and
+  any secret reachable from a fork pull request.
+
+### Merge gate
+- `PR Validation` is the required check. Flag renaming it, and removing a
+  mandatory job from its `needs` or from the results it checks.
+- Flag `continue-on-error` on mandatory work, any condition other than the
+  gate's `!cancelled()` that can skip the gate (GitHub treats a skipped
+  required check as passing), and a change that lets the gate accept a missing,
+  malformed or unauthorized skipped result. Keep the conditions that let the
+  gate run and fail when a job it needs has failed.
+- Do not claim a check ran unless its result is present on the pull request.
