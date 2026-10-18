@@ -239,7 +239,7 @@ export const parseSandboxStoragePayload = (
     return null;
   }
 
-  if (typeof parsed.version !== "number" || ![1, 2, 3].includes(parsed.version) ||
+  if (typeof parsed.version !== "number" || ![2, 3].includes(parsed.version) ||
     typeof parsed.code !== "string") return null;
   const effectiveLimit = normalizeHistoryLimit(
     parsed.version === 3 && typeof parsed.historyLimit === "number"
