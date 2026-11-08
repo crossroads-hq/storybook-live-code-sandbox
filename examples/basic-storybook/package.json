@@ -13,10 +13,15 @@
     "@vitejs/plugin-react": "^6.0.5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "storybook": "^10.5.5",
+    "storybook": "^10.6.3",
     "storybook-live-code-sandbox": "file:../..",
     "typescript": "^5.9.0",
-    "vite": "^8.2.1"
+    "vite": "^8.3.4"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "overrides": {
+    "@joshwooding/vite-plugin-react-docgen-typescript@0.7.0": {
+      "glob": "14.0.2"
+    }
+  }
 }
